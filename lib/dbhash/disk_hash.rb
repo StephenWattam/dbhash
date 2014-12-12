@@ -42,11 +42,7 @@ module DBHash
 
     # Append a value
     def []=(key, value)
-      hsh  = hash_for(key)
-      bin  = bin_for(hsh)
-      file = file_for(bin)
-
-      # Read from the index
+      hsh, bin, file = location_for(key)
       offset, last_offset, count = @index[bin]
 
       # puts "[#{key}] bin: #{bin}, file #{file}, offset: #{offset}, last: #{last_offset}, count: #{count}"
@@ -70,6 +66,52 @@ module DBHash
       end
     end
 
+    # Find a key and return all
+    # writes from it
+    def each_for(key)
+      hsh, bin, file = location_for(key)
+      offset, last_offset, count = @index[bin]
+      return unless count > 0
+
+      @files[file].each_from(offset, hsh, key) do |v|
+        yield(v)
+      end
+    end
+
+    # First entry inserted for a given key
+    def first_for(key)
+      hsh, bin, file = location_for(key)
+      offset, last_offset, count = @index[bin]
+     
+      @files[file].first_from(offset, hsh, key)
+    end
+
+    # Last entry inserted for a given key
+    def last_for(key)
+      hsh, bin, file = location_for(key)
+      offset, last_offset, count = @index[bin]
+     
+      @files[file].last_from(offset, hsh, key)
+    end
+
+    # Size of the chain for key
+    def length_for(key)
+      hsh, bin, file = location_for(key)
+      offset, last_offset, count = @index[bin]
+     
+      @files[file].length_from(offset, hsh, key)
+    end
+    alias_method :size_for, :length_for
+
+    # Find the nth record in the chain for key
+    def nth_for(key, i)
+      hsh, bin, file = location_for(key)
+      offset, last_offset, count = @index[bin]
+
+      i = (self.length_for(key) + i) if i < 1
+      @files[file].nth_from(offset, i, hsh, key)
+    end
+
     # Flush all unwritten data to disk
     def flush
       @files.each { |f| f.flush }
@@ -83,6 +125,14 @@ module DBHash
     end
 
   private
+
+    def location_for(key)
+      hsh  = hash_for(key)
+      bin  = bin_for(hsh)
+      file = file_for(bin)
+
+      return hsh, bin, file
+    end
 
     # compute a hash for the key
     def hash_for(key)

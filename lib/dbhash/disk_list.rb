@@ -90,7 +90,7 @@ module DBHash
 
       while(record = @h.read(FULL_RECORD_LENGTH))
          # Read data
-        i, hash, key_length, value_length, next_link = from_record(record)
+        i, rhsh, key_length, value_length, next_link = from_record(record)
         # puts "READ: #{from_record(record)} (#{@h.tell}, #{next_link})"
         key   = @h.read(key_length)
         value = @h.read(value_length)
@@ -104,6 +104,52 @@ module DBHash
       end
     end
 
+    # Each item matching the key or hash
+    def each_from(offset, hsh = nil, key = nil)
+      _each_from(offset, hsh, key) do |i, rhsh, key_length, value_length, rkey, rvalue|
+        yield rvalue
+      end
+    end
+
+    # First value in the chain
+    def first_from(offset, hsh = nil, key = nil)
+      _each_from(offset, hsh, key) do |i, rhsh, key_length, value_length, rkey, rvalue|
+        return rvalue
+      end
+    end
+
+    # First value in the chain
+    def last_from(offset, hsh = nil, key = nil)
+      var = nil
+      _each_from(offset, hsh, key) do |i, rhsh, key_length, value_length, rkey, rvalue|
+        var = rvalue 
+      end
+
+      return var
+    end
+
+    # First value in the chain
+    def length_from(offset, hsh = nil, key = nil)
+      count = 0
+      _each_from(offset, hsh, key) do |i, rhsh, key_length, value_length, rkey, rvalue|
+        count += 1
+      end
+
+      return count 
+    end
+    alias_method :size_from, :length_from
+
+    # Return the nth item in the chain
+    def nth_from(offset, i, hsh = nil, key = nil)
+      count = 0
+
+      _each_from(offset, hsh, key) do |i, rhsh, key_length, value_length, rkey, rvalue|
+        return rvalue if count == i
+        count += 1
+      end
+
+      return nil
+    end
 
     # Flush all edits to disk.
     def flush
@@ -130,7 +176,7 @@ module DBHash
       @h.seek(header_offset, IO::SEEK_SET)
       while(record = @h.read(FULL_RECORD_LENGTH))
         # Read data
-        i, hash, key_length, value_length, next_link = from_record(record)
+        i, rhsh, key_length, value_length, next_link = from_record(record)
         # puts "READ: #{header_offset} = #{from_record(record)} (#{header_offset}, #{next_link})"
         return header_offset if next_link == 0
 
@@ -142,6 +188,40 @@ module DBHash
       end
 
       return header_offset
+    end
+
+    # Internally loop over every record in a chain,
+    # yielding most things necessary to make a decision about it
+    def _each_from(offset, hsh = nil, key = nil)
+      return nil if offset > @end
+
+      @h.seek(offset, IO::SEEK_SET)
+      while(record = @h.read(FULL_RECORD_LENGTH))
+        i, rhsh, key_length, value_length, next_link = from_record(record)
+
+        # Check the hashes match as a cheap key check
+        if hsh && rhsh != hsh
+          return if !next_link || next_link == 0
+          @h.seek(next_link, IO::SEEK_SET)
+          next
+        end
+
+        # Check the keys match using ==,
+        # and skip if not
+        rkey = @h.read(key_length)
+        if key && rkey != key
+          return if !next_link || next_link == 0
+          @h.seek(next_link, IO::SEEK_SET)
+          next
+        end
+
+        rvalue = @h.read(value_length)
+        yield(i, rhsh, key_length, value_length, rkey, rvalue)
+        return if !next_link || next_link == 0
+        
+        # Skip the data and read the next header
+        @h.seek(next_link, IO::SEEK_SET)
+      end
     end
 
     # Write the size of the overall file 

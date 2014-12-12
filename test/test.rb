@@ -38,14 +38,28 @@ puts "Using #{tmp}"
 dh  = DBHash::DiskHash.new(tmp)
 
 
-100.times do |n|
-  dh["Key#{n}"] = "Value#{n}"
+10.times do |n|
+  dh["Key"] = "Value#{n}"
+end
+10.times do |n|
+  dh["Key2"] = "2Value#{n}2"
+end
+10.times do |n|
+  dh["Key3"] = "3Value#{n}3"
 end
 
+
+puts "Each write operation:"
 dh.each do |k, v|
-  puts "=> #{v}"
+  puts "[#{k}] => #{v}"
 end
 
+puts "Each part in the 'Key' chain:"
+dh.each_for("Key") do |v|
+  puts "#{v}"
+end
+puts "First/last for 'Key': #{dh.first_for("Key")}, #{dh.last_for("Key")}"
+puts "length: #{dh.length_for("Key")}"
 
 
 # Remove temp
