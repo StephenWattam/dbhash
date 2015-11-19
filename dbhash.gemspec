@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   # About the gem
-  s.name        = 'DBHash'
+  s.name        = 'dbhash'
   s.version     = '0.1.0a'
   s.date        = '2014-12-12'
   s.summary     = 'A disk-backed version of ruby\'s Hash'
@@ -12,7 +12,7 @@ Gem::Specification.new do |s|
   s.license     = 'CC-BY-NC-SA 3.0' # Creative commons by-nc-sa 3
   
   # Files + Resources
-  s.files         = Dir["lib/*.rb"]# + Dir['bin/*']
+  s.files         = Dir["lib/*.rb"] + Dir['lib/dbhash/*.rb']
   s.require_paths = ['lib']
   
   # Executables
@@ -24,7 +24,7 @@ Gem::Specification.new do |s|
   s.has_rdoc         = false
 
   # Deps
-  c.add_runtime_dependency 'xxhash',     '~> 0.2'
+  s.add_runtime_dependency 'xxhash',     '~> 0.2'
 
 end
 
