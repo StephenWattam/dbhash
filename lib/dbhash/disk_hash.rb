@@ -21,13 +21,13 @@ module DBHash
                    num_bins = DEFAULT_NUM_BINS, 
                    num_files = DEFAULT_NUM_FILES,
                    hash_seed = DEFAULT_HASH_SEED)
-      @dir        = dir
+      @dir        = dir.to_s
       @num_files  = num_files
       @num_bins   = num_bins
       @hash_seed  = hash_seed
 
       # Load index file (created if not extant)
-      FileUtils.mkdir_p(dir) unless File.directory?(dir)
+      FileUtils.mkdir_p(@dir) unless File.directory?(@dir)
       @index = HashIndex.new(File.join(@dir, INDEX_FILENAME))
 
       # Load any bin lengths from last time if possible
